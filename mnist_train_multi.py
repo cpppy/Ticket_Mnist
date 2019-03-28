@@ -26,10 +26,10 @@ flags = app.flags
 # Note: Use this params as contant values
 #       Do not set this params !!!
 # =======================================================================
-flags.DEFINE_string("work_dir", "/data", "Default work path")
-flags.DEFINE_string("data_dir", "/data/data", "Default data path")
-flags.DEFINE_string("output_dir", "/data/output", "Default output path")
-flags.DEFINE_integer("num_gpus", 0, "Num of avaliable gpus")
+# flags.DEFINE_string("work_dir", "/data", "Default work path")
+# flags.DEFINE_string("data_dir", "/data/data", "Default data path")
+# flags.DEFINE_string("output_dir", "/data/output", "Default output path")
+# flags.DEFINE_integer("num_gpus", 0, "Num of avaliable gpus")
 
 # How many categories we are predicting from (0-9)
 LABEL_DIMENSIONS = 10
@@ -112,7 +112,9 @@ def train():
         print(conf)
         os.environ['TF_CONFIG'] = json.dumps(conf)
     else:
+        print('tf_config not exists in os.environ, task over.')
         return
+
 
     model = build_model()
 
