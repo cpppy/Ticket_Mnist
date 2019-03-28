@@ -12,12 +12,28 @@ def rescale_to_cube(img):
     res_img[paste_pos[1]:img_h+paste_pos[1], paste_pos[0]:img_w+paste_pos[00]] = img
     return res_img
 
+def draw_compare_result(img_cv2, pred_label):
+    img_h, img_w = img_cv2.shape[0:2]
+    canvas = np.ones(shape=(2*img_h, img_w), dtype=np.uint8)*200
+    canvas[0:img_h, :] = img_cv2
+    cv2.putText(img=canvas,
+                text=pred_label,
+                org=(5, img_h*2-5),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.8,
+                color=0,
+                thickness=2)
+    display_img = canvas.copy()
+    display_img = cv2.resize(display_img, (img_w*10, img_h*20))
+    # cv2.imshow('compare_result', display_img)
+    # cv2.waitKey(0)
+    return display_img
 
 
 
 if __name__=='__main__':
 
-    weights_path = '/data/output/mnist--09--0.988.h5'
+    weights_path = '/data/output/mnist--16--0.988.h5'
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.InputLayer(input_shape=(32, 32, 1)),
@@ -39,25 +55,37 @@ if __name__=='__main__':
 
     img_dir = './test_data2'
     img_fn_list = os.listdir(img_dir)
-
+    img_fn_list = sorted(img_fn_list)
     for img_fn in img_fn_list:
         img_path = os.path.join(img_dir, img_fn)
         img_cv2 = cv2.imread(img_path, 0)
-        cv2.imshow('res', img_cv2)
-        cv2.waitKey(0)
+
         img_cv2 = rescale_to_cube(img_cv2)
         img_cv2 = cv2.resize(img_cv2, (32, 32))
 
+        # cv2.imshow('res', img_cv2)
+        # cv2.waitKey(0)
+
+
+        # output2 rescale_dir
+        # output_path = os.path.join('./rescale_img', img_fn)
+        # cv2.imwrite(output_path, img_cv2)
+
+
         img_pred = img_cv2.astype(np.float32)
         img_pred = img_pred/255.0
-
+        
         img_pred = np.expand_dims(img_pred, axis=-1)
         input = np.expand_dims(img_pred, axis=0)
 
-        print(input.shape)
+        # print(input.shape)
         net_out_value = model.predict(input)
-        print(net_out_value)
+        # print(net_out_value)
         res = np.argmax(net_out_value)
-        print(res)
+        print(img_fn, res)
+
+        compare_img = draw_compare_result(img_cv2, str(res))
+        cv2.imwrite(os.path.join('./compare_img', img_fn), compare_img)
+
 
 
