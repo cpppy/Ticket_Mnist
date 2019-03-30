@@ -15,7 +15,7 @@ flags.DEFINE_string("output_dir", "/data/output", "Default output path")
 flags.DEFINE_integer("num_gpus", 0, "Num of avaliable gpus")
 
 def load_mnist_data():
-    path = '/data/data/mnist.npz'
+    path = './mnist_data/mnist.npz'
     with np.load(path) as f:
         x_train, y_train = f['x_train'], f['y_train']
         x_test, y_test = f['x_test'], f['y_test']
@@ -25,9 +25,7 @@ def load_mnist_data():
 
 def train():
 
-  mnist = tf.keras.datasets.mnist
-
-  (x_train, y_train),(x_test, y_test) = mnist.load_data('/data/data')
+  (x_train, y_train),(x_test, y_test) = load_mnist_data()
   x_train, x_test = x_train / 255.0, x_test / 255.0
 
   model = tf.keras.models.Sequential([
@@ -40,8 +38,8 @@ def train():
                 loss='sparse_categorical_crossentropy',
                 metrics=['accuracy'])
 
-  weights_path = '/data/data/mnist.h5'
-  model.load_weights(weights_path)
+  # weights_path = '/data/data/mnist.h5'
+  # model.load_weights(weights_path)
 
   model.fit(x_train, y_train, epochs=5)
   output_path = os.path.join(FLAGS.output_dir, 'mnist.h5')

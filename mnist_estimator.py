@@ -6,6 +6,7 @@ from absl import app
 from absl import flags
 import sys
 
+
 from tensorflow.python.keras.utils import *
 
 import logging
@@ -32,7 +33,6 @@ flags.DEFINE_integer("num_gpus", 0, "Num of avaliable gpus")
 # How many categories we are predicting from (0-9)
 LABEL_DIMENSIONS = 10
 
-
 def load_mnist_data():
     path = './mnist_data/mnist.npz'
     with np.load(path) as f:
@@ -40,7 +40,6 @@ def load_mnist_data():
         x_test, y_test = f['x_test'], f['y_test']
 
     return (x_train, y_train), (x_test, y_test)
-
 
 
 
@@ -102,7 +101,7 @@ def input_fn(images, labels, repeat, batch_size):
 
 
 def train():
-
+    '''
     # pack tf_dist_conf
     if 'TF_CONFIG' in os.environ:
         tf_dist_conf = os.environ['TF_CONFIG']
@@ -122,7 +121,7 @@ def train():
     else:
         print('tf_config not exists in os.environ, task over.')
         return
-
+    '''
 
     model = build_model()
 
@@ -130,13 +129,15 @@ def train():
     train_labels = None
     test_images = None
     test_labels = None
-
+    '''
     if is_ps:
         distribution = tf.distribute.experimental.ParameterServerStrategy()
     else:
         distribution = tf.distribute.experimental.MultiWorkerMirroredStrategy()
-    config = tf.estimator.RunConfig(train_distribute=distribution)
-    estimator = tf.keras.estimator.model_to_estimator(model, model_dir=FLAGS.output_dir, config=config)
+    '''
+    # config = tf.estimator.RunConfig(train_distribute=distribution)
+
+    estimator = tf.keras.estimator.model_to_estimator(model, model_dir=FLAGS.output_dir)
 
     train_images, train_labels, test_images, test_labels = get_input()
 
