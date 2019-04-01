@@ -50,8 +50,9 @@ def read_features(tfrecords_dir, num_epochs, flag):
     image = tf.decode_raw(features['images'], tf.uint8)
     images = tf.reshape(image, [32, 32])
     labels = features['labels']
-    # labels = tf.one_hot(indices=labels, depth=config.cfg.TRAIN.CLASSES_NUMS)
+    labels = tf.one_hot(indices=labels, depth=10) #config.cfg.TRAIN.CLASSES_NUMS)
     labels = tf.cast(labels, tf.int32)
+    # labels = tf.keras.utils.to_categorical(labels, num_classes=10)
     imagenames = features['imagenames']
     return images, labels, imagenames
 

@@ -70,7 +70,7 @@ def get_input():
 def my_input_fn(data_dir='/data/data/mnist_tfrecords',
                 subset='Train',
                 num_shards=0,
-                batch_size=16,
+                batch_size=4,
                 use_distortion_for_training=False):
     """Create input graph for model.
 
@@ -88,20 +88,22 @@ def my_input_fn(data_dir='/data/data/mnist_tfrecords',
         # use_distortion = subset == 'train' and use_distortion_for_training
         use_distortion = False
         dataset = mnist_dataset.MnistDataSet(data_dir, subset, use_distortion)
-        inputdata, input_labels = dataset.make_batch(batch_size)
+        input_data, input_labels = dataset.make_batch(batch_size)
+        labels = tf.one_hot(indices=input_labels, depth=10)  # config.cfg.TRAIN.CLASSES_NUMS)
+        one_hot_labels = tf.cast(labels, tf.int32)
 
         if num_shards <= 1:
             # No GPU available or only 1 GPU.
             num_shards = 1
 
-        feature_shards = tf.split(inputdata, num_shards)
+        feature_shards = tf.split(input_data, num_shards)
         # label_shards = tf.sparse_split(sp_input=input_labels, num_split=num_shards, axis=0)
-        label_shards = tf.split(input_labels, num_shards)
+        label_shards = tf.split(one_hot_labels, num_shards)
         return feature_shards, label_shards
 
 
 def build_model():
-    inputs = tf.keras.Input(shape=(28, 28, 1))  # Returns a placeholder tensor
+    inputs = tf.keras.Input(shape=(32, 32, 1))  # Returns a placeholder tensor
     x = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation=tf.nn.relu)(inputs)
     x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)(x)
     x = tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation=tf.nn.relu)(x)
@@ -180,20 +182,14 @@ def train():
 
     BATCH_SIZE = 16
     EPOCHS = 5
-    STEPS = 1000
+    STEPS = 2000
 
-    train_spec = tf.estimator.TrainSpec(input_fn=lambda: input_fn(train_images,
-                                                                  train_labels,
-                                                                  repeat=EPOCHS,
-                                                                  batch_size=BATCH_SIZE),
+    train_spec = tf.estimator.TrainSpec(input_fn=lambda: my_input_fn(batch_size=BATCH_SIZE),
                                         max_steps=STEPS)
 
-    eval_spec = tf.estimator.EvalSpec(input_fn=lambda: input_fn(train_images,
-                                                                train_labels,
-                                                                repeat=1,
-                                                                batch_size=BATCH_SIZE),
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda: my_input_fn(batch_size=BATCH_SIZE),
                                       steps=1,
-                                      start_delay_secs=0)
+                                      start_delay_secs=3)
 
 
 
