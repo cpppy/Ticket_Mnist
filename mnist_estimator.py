@@ -6,10 +6,10 @@ from absl import app
 from absl import flags
 import sys
 
-
 from tensorflow.python.keras.utils import *
 
 import logging
+import mnist_dataset
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -33,6 +33,7 @@ flags.DEFINE_integer("num_gpus", 0, "Num of avaliable gpus")
 # How many categories we are predicting from (0-9)
 LABEL_DIMENSIONS = 10
 
+
 def load_mnist_data():
     path = './mnist_data/mnist.npz'
     with np.load(path) as f:
@@ -42,9 +43,7 @@ def load_mnist_data():
     return (x_train, y_train), (x_test, y_test)
 
 
-
 def get_input():
-
     (train_images, train_labels), (test_images, test_labels) = load_mnist_data()
     TRAINING_SIZE = len(train_images)
     TEST_SIZE = len(test_images)
@@ -66,6 +65,39 @@ def get_input():
     test_labels = test_labels.astype(np.float32)
 
     return train_images, train_labels, test_images, test_labels
+
+
+def my_input_fn(data_dir='/data/data/mnist_tfrecords',
+                subset='Train',
+                num_shards=0,
+                batch_size=16,
+                use_distortion_for_training=False):
+    """Create input graph for model.
+
+    Args:
+      data_dir: Directory where TFRecords representing the dataset are located.
+      subset: one of 'train', 'validate' and 'eval'.
+      num_shards: num of towers participating in data-parallel training.
+      batch_size: total batch size for training to be divided by the number of
+      shards.
+      use_distortion_for_training: True to use distortions.
+    Returns:
+      three
+    """
+    with tf.device('/cpu:0'):
+        # use_distortion = subset == 'train' and use_distortion_for_training
+        use_distortion = False
+        dataset = mnist_dataset.MnistDataSet(data_dir, subset, use_distortion)
+        inputdata, input_labels = dataset.make_batch(batch_size)
+
+        if num_shards <= 1:
+            # No GPU available or only 1 GPU.
+            num_shards = 1
+
+        feature_shards = tf.split(inputdata, num_shards)
+        # label_shards = tf.sparse_split(sp_input=input_labels, num_split=num_shards, axis=0)
+        label_shards = tf.split(input_labels, num_shards)
+        return feature_shards, label_shards
 
 
 def build_model():
@@ -94,7 +126,7 @@ def input_fn(images, labels, repeat, batch_size):
     dataset = tf.data.Dataset.from_tensor_slices((images, labels))
 
     # Shuffle, repeat, and batch the examples.
-    SHUFFLE_SIZE = 10000
+    SHUFFLE_SIZE = 100
     dataset = dataset.shuffle(SHUFFLE_SIZE).repeat(repeat).batch(batch_size)
 
     # Return the dataset.
@@ -138,11 +170,15 @@ def train():
     '''
     # config = tf.estimator.RunConfig(train_distribute=distribution)
 
-    estimator = tf.keras.estimator.model_to_estimator(model, model_dir=FLAGS.output_dir)
+    estimator = tf.keras.estimator.model_to_estimator(model, model_dir='/data/output/')  # FLAGS.output_dir)
 
-    train_images, train_labels, test_images, test_labels = get_input()
+    # train_images, train_labels, test_images, test_labels = get_input()
+    feature_shards, label_shards = my_input_fn()
+    train_images = feature_shards  #['images']
+    train_labels = label_shards #['labels']
 
-    BATCH_SIZE = 64
+
+    BATCH_SIZE = 16
     EPOCHS = 5
     STEPS = 1000
 
@@ -152,12 +188,14 @@ def train():
                                                                   batch_size=BATCH_SIZE),
                                         max_steps=STEPS)
 
-    eval_spec = tf.estimator.EvalSpec(input_fn=lambda: input_fn(test_images,
-                                                                test_labels,
+    eval_spec = tf.estimator.EvalSpec(input_fn=lambda: input_fn(train_images,
+                                                                train_labels,
                                                                 repeat=1,
                                                                 batch_size=BATCH_SIZE),
-                                      steps=100,
+                                      steps=1,
                                       start_delay_secs=0)
+
+
 
     tf.estimator.train_and_evaluate(
         estimator,
@@ -165,9 +203,5 @@ def train():
         eval_spec)
 
 
-def main(_):
-    train()
-
-
 if __name__ == '__main__':
-    app.run(main)
+    train()
