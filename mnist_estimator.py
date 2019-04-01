@@ -80,7 +80,8 @@ def build_model():
     predictions = tf.keras.layers.Dense(LABEL_DIMENSIONS, activation=tf.nn.softmax)(x)
 
     model = tf.keras.Model(inputs=inputs, outputs=predictions)
-    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001)
+    # optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(lr=0.001)
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizer,
                   metrics=['accuracy'])
