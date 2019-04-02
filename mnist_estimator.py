@@ -172,7 +172,7 @@ def train():
     '''
     # config = tf.estimator.RunConfig(train_distribute=distribution)
 
-    estimator = tf.keras.estimator.model_to_estimator(model, model_dir='/data/output/')  # FLAGS.output_dir)
+    estimator = tf.keras.estimator.model_to_estimator(model, model_dir='/data/output/mnist_estimator_ckp')  # FLAGS.output_dir)
 
     # train_images, train_labels, test_images, test_labels = get_input()
     feature_shards, label_shards = my_input_fn()
